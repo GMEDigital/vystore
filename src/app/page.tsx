@@ -13,17 +13,39 @@ import CartDrawer from '@/components/cart/CartDrawer'
 
 export default function HomePage() {
     const [selectedCategory, setSelectedCategory] = useState('all')
+    const [searchQuery, setSearchQuery] = useState('')
     const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
     const cart = useCart()
 
     const filteredProducts = useMemo(() => {
-        if (selectedCategory === 'all') return products
-        return products.filter(p => p.category === selectedCategory)
-    }, [selectedCategory])
+        let result = products
+
+        // Filter by category
+        if (selectedCategory !== 'all') {
+            result = result.filter(p => p.category === selectedCategory)
+        }
+
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim()
+            result = result.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                p.description.toLowerCase().includes(query) ||
+                p.category.toLowerCase().includes(query)
+            )
+        }
+
+        return result
+    }, [selectedCategory, searchQuery])
 
     return (
         <div className="min-h-screen">
-            <Header cartItemCount={cart.itemCount} onCartClick={() => cart.setIsOpen(true)} />
+            <Header
+                cartItemCount={cart.itemCount}
+                onCartClick={() => cart.setIsOpen(true)}
+                searchQuery={searchQuery}
+                onSearch={setSearchQuery}
+            />
 
             {/* Hero Section */}
             <section className="container mx-auto px-4 py-8 md:py-16">
