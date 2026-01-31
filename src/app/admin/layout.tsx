@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { AuthProvider, useAuth } from '@/hooks/useAuth'
 
 const navItems = [
     { href: '/admin', label: 'Dashboard', icon: '📊' },
@@ -11,13 +12,49 @@ const navItems = [
     { href: '/admin/settings', label: 'Pengaturan', icon: '⚙️' },
 ]
 
-export default function AdminLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
+function AdminContent({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const pathname = usePathname()
+    const router = useRouter()
+    const { isAuthenticated, isLoading, logout } = useAuth()
+
+    // Don't apply auth check on login page
+    const isLoginPage = pathname === '/admin/login'
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated && !isLoginPage) {
+            router.push('/admin/login')
+        }
+    }, [isLoading, isAuthenticated, isLoginPage, router])
+
+    const handleLogout = () => {
+        logout()
+        router.push('/admin/login')
+    }
+
+    // Show loading while checking auth
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <span className="text-dark-900 font-bold text-2xl">V</span>
+                    </div>
+                    <p className="text-dark-400">Memuat...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // Don't show sidebar on login page
+    if (isLoginPage) {
+        return <>{children}</>
+    }
+
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+        return null
+    }
 
     return (
         <div className="min-h-screen bg-dark-950">
@@ -92,6 +129,7 @@ export default function AdminLayout({
                         <span className="font-medium">Lihat Toko</span>
                     </Link>
                     <button
+                        onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all mt-2"
                     >
                         <span className="text-xl">🚪</span>
@@ -119,7 +157,12 @@ export default function AdminLayout({
                             </div>
                             <span className="font-display font-bold text-white">Admin</span>
                         </div>
-                        <div className="w-10 h-10"></div>
+                        <button
+                            onClick={handleLogout}
+                            className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                            🚪
+                        </button>
                     </div>
                 </header>
 
@@ -129,5 +172,17 @@ export default function AdminLayout({
                 </main>
             </div>
         </div>
+    )
+}
+
+export default function AdminLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    return (
+        <AuthProvider>
+            <AdminContent>{children}</AdminContent>
+        </AuthProvider>
     )
 }
